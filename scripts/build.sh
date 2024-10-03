@@ -24,26 +24,35 @@ compile() {
   for dir in ../lib/libraries/*; do
     if [ -d "$dir" ]; then
       INCLUDE_PATHS="$INCLUDE_PATHS -I $dir"
+      if [ -d "$dir/utility" ]; then
+        INCLUDE_PATHS="$INCLUDE_PATHS -I $dir/utility"
+      fi
     fi
   done
 
+  # Optimization flags
+  OPT_FLAGS="-Os -flto -ffunction-sections -fdata-sections"
+
   # Compile C files
-  for file in ../lib/cores/arduino/*.c; do
-      avr-gcc -c -mmcu=atmega328p -DF_CPU=16000000UL -Os $INCLUDE_PATHS "$file" -o "../build/obj/$(basename "${file%.c}.o")" 1>/dev/null 2> >(tee >(ts >> ../build/log/compile_errors.log) >&2)
-  done
+  for file in ../lib/cores/arduino/*.c ../lib/libraries/*/utility/*.c; do
+        avr-gcc -c -mmcu=atmega328p -DF_CPU=16000000UL $OPT_FLAGS $INCLUDE_PATHS "$file" -o "../build/obj/$(basename "${file%.c}.o")" 1>/dev/null 2> >(tee >(ts >> ../build/log/compile_errors.log) >&2)
+    done
 
-  # Compile C++ files
-  for file in ../lib/cores/arduino/*.cpp ../lib/libraries/*/*.cpp; do
-      avr-gcc -c -mmcu=atmega328p -DF_CPU=16000000UL -Os $INCLUDE_PATHS "$file" -o "../build/obj/$(basename "${file%.cpp}.o")" 1>/dev/null 2> >(tee >(ts >> ../build/log/compile_errors.log) >&2)
-  done
+    # Compile C++ files
+    for file in ../lib/cores/arduino/*.cpp ../lib/libraries/*/*.cpp ../lib/libraries/*/utility/*.cpp; do
+        avr-gcc -c -mmcu=atmega328p -DF_CPU=16000000UL $OPT_FLAGS $INCLUDE_PATHS "$file" -o "../build/obj/$(basename "${file%.cpp}.o")" 1>/dev/null 2> >(tee >(ts >> ../build/log/compile_errors.log) >&2)
+    done
 
-  # Create archive
-  avr-ar rcs ../build/obj/core.a ../build/obj/*.o
+    # Create archive with LTO
+    AR=avr-gcc-ar avr-gcc-ar rcs ../build/obj/core.a ../build/obj/*.o
 
-  # Compile main.cpp
-  avr-gcc -mmcu=atmega328p -DF_CPU=16000000UL -Os $INCLUDE_PATHS ../src/main.cpp ../build/obj/core.a -o ../build/bin/output.elf 1>/dev/null 2> >(tee >(ts >> ../build/log/compile_errors.log) >&2)
+    # Compile main.cpp with LTO and strip unused sections
+    avr-gcc -mmcu=atmega328p -DF_CPU=16000000UL $OPT_FLAGS $INCLUDE_PATHS ../src/main.cpp ../build/obj/core.a -Wl,--gc-sections -o ../build/bin/output.elf 1>/dev/null 2> >(tee >(ts >> ../build/log/compile_errors.log) >&2)
 
-  echo "Compilation complete"
+    # Strip unused sections
+    avr-strip ../build/bin/output.elf
+
+    echo "Compilation complete"
 }
 
 upload() {
