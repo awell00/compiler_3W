@@ -2,9 +2,13 @@
 
 mainDir="compilation_result"
 
+if [ ! -d "compilation" ]; then
+    mkdir "compilation"
+fi
+
 mkMainDir()
 {
-    echo -e "\033[1;33mCréation du dossier 'compilation/${mainDir}' pour les résultats de la compilation...\033[0m"
+    echo -e "\033[1;33mCréation du dossier '${mainDir}' pour les résultats de la compilation...\033[0m"
     if [ -d "compilation/${maindir}" ]; then
         echo -e "\033[1;33mAie ! '${mainDir}' existe déjà dans le répertoire courant.\033[0m"
         echo -e "\033[1;33m[1] Écraser\033[0m"
