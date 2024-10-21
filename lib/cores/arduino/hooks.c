@@ -19,7 +19,7 @@
 /**
  * Empty yield() hook.
  *
- * This function is intended to be used by library writers to build
+ * This function is intended to be used by library writers to compilation
  * libraries or sketches that supports cooperative threads.
  *
  * Its defined as a weak symbol and it can be redefined to implement a

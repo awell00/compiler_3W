@@ -187,7 +187,7 @@ uint8_t twi_readFrom(uint8_t address, uint8_t* data, uint8_t length, uint8_t sen
   // received, causing that NACK to be sent in response to receiving the last
   // expected byte of data.
 
-  // build sla+w, slave device address + w bit
+  // compilation sla+w, slave device address + w bit
   twi_slarw = TW_READ;
   twi_slarw |= address << 1;
 
@@ -281,7 +281,7 @@ uint8_t twi_writeTo(uint8_t address, uint8_t* data, uint8_t length, uint8_t wait
     twi_masterBuffer[i] = data[i];
   }
   
-  // build sla+w, slave device address + w bit
+  // compilation sla+w, slave device address + w bit
   twi_slarw = TW_WRITE;
   twi_slarw |= address << 1;
   
