@@ -90,17 +90,30 @@ compile()
 
     extraOptimization="-fno-exceptions -fno-rtti -fno-asynchronous-unwind-tables -fno-unwind-tables"
 
-    avr-g++ -c -mmcu=atmega328p -DF_CPU=16000000UL $optimization $extraOptimization $paths "compilation/${mainDir}/src/main.cpp" -o "compilation/${mainDir}/build/obj/sourcecode.o" #compile
+    for file in $(find "compilation/${mainDir}/src" -name "*.c" -o -name "*.cpp" -type f); do #pour chaque fichier c ou cpp dans lib
+        extension="${file##*.}" #extrait l'extension
+        filename="$(basename "${file}" .${extension})" #extrait le nom du fichier sans l'extension
+        if [ "$extension" = "cpp" ]; then
+            compiler=avr-g++ 
+        else
+            compiler=avr-gcc
+        fi
+        $compiler -c -mmcu=atmega328p -DF_CPU=16000000UL $optimization $extraOptimization $paths $file -o "compilation/${mainDir}/build/obj/src-${filename}.${extension}.o" #compile
+    done
 
-    #6) lie le code source compilé avec l'archive des bibliothèques en un exécutable (format .elf)
+    #6) créé un fichier archive (.a) avec les fichiers objets du code source
+    
+    avr-gcc-ar rcs "compilation/${mainDir}/build/artifacts/arsrc.a" compilation/${mainDir}/build/obj/src-*.o
 
-    avr-gcc -mmcu=atmega328p -DF_CPU=16000000UL $optimization -o "compilation/${mainDir}/build/artifacts/project.elf" "compilation/${mainDir}/build/obj/sourcecode.o" "compilation/${mainDir}/build/artifacts/arlib.a" -Wl,--gc-sections,--relax,--strip-all
+    #7) lie le code source compilé avec l'archive des bibliothèques en un exécutable (format .elf)
 
-    #7) supprime les trucs inutilisés dans le fichier .elf
+    avr-gcc -mmcu=atmega328p -DF_CPU=16000000UL $optimization -o "compilation/${mainDir}/build/artifacts/project.elf" "compilation/${mainDir}/build/artifacts/arlib.a" "compilation/${mainDir}/build/artifacts/arsrc.a" "compilation/${mainDir}/build/artifacts/arlib.a" -Wl,--gc-sections,--relax,--strip-all
+    
+    #8) supprime les trucs inutilisés dans le fichier .elf
 
     avr-strip -s -R .comment -R .gnu.version "compilation/${mainDir}/build/artifacts/project.elf"
 
-    #8) rend le .elf flashable en le convertissant en .hex
+    #9) rend le .elf flashable en le convertissant en .hex
 
     avr-objcopy -O ihex -R .eeprom "compilation/${mainDir}/build/artifacts/project.elf" "compilation/${mainDir}/bin/project.hex"
 
@@ -110,7 +123,7 @@ compile()
 
 upload()
 {
-    #9) ask for serial port
+    #10) ask for serial port
 
     echo -e "\033[1;33mEntrez votre port série\033[0m"
     echo -e "\033[1;33m[1] /dev/ttyACM0 #Port série pour microcontrôleurs (Ubuntu)\033[0m"
@@ -144,7 +157,7 @@ upload()
     file="compilation/${mainDir}/bin/project.hex"
     mcu="atmega328p"
 
-    #10) téléverse
+    #11) téléverse
 
     avrdude -v -p $mcu -c arduino -P $serial -b $baudRate -D -U flash:w:${file}:i || { echo -e "\033[1;31mErreur\033[0m"; echo -e "\033[1;31mÉchec du téléversement\033[0m"; exit ; }
 
